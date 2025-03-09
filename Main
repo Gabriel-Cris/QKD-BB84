@@ -1,0 +1,91 @@
+import numpy as np
+import time
+
+def main():
+    print("\n---------------------------------------------------------------------------------")
+    print("\t\t\t\t-----<<EnQuad Engine Initialization>>-----\n")
+    print("\n\t\t\t\t\t\t-----<<Input Conditions>>------\n")
+
+    # Input: Number of photons
+    while True:
+        number_of_photons = int(input('Please input the number of photons to be sent: '))
+        if number_of_photons > 0:
+            break
+        else:
+            print('Number of photons must be an integer more than zero.')
+
+    # Input: Channel depolarization probability
+    while True:
+        channel_depolarization_probability = float(input('Please input the depolarizing parameter of your channel: '))
+        if 0 < channel_depolarization_probability < 0.25:
+            break
+        else:
+            print('Depolarizing parameter should be a decimal number in the range of (0, 0.25).')
+
+    # Input: Eve attack level
+    while True:
+        Eve_attack_level = float(input('Please input Eve attack level of your interest: '))
+        if 0 <= Eve_attack_level <= 1:
+            break
+        else:
+            print('Eve attack Level should be a decimal number in the range of [0, 1].')
+
+    # Generate key bits and basis selections
+    key_bits = np.round(np.random.rand(number_of_photons)).astype(int)
+    Alice_basis_selection = np.round(np.random.rand(number_of_photons)).astype(int)
+    Bob_basis_selection = np.round(np.random.rand(number_of_photons)).astype(int)
+
+    print("\n\t\t\t\t\t\t-----<<Phases>>------\n")
+
+    # 1- Polarizer
+    start_time = time.time()
+    Alice_polarized_photons_states = Polarizer(Alice_basis_selection, key_bits, number_of_photons)
+    t1 = time.time() - start_time
+    print('Polarizer phase...Done')
+
+    copy_before_eve = Alice_polarized_photons_states
+
+    # 2- Eve intercept and resend
+    t2 = 0
+    if Eve_attack_level != 0:
+        start_time = time.time()
+        Alice_polarized_photons_states, Eve_basis_selection = Eve_Intercept_and_Resend(Eve_attack_level, number_of_photons, Alice_polarized_photons_states)
+        Eve_key = SPAD(Alice_polarized_photons_states)
+        t2 = time.time() - start_time
+        print('Eve-Intercept-And-Resend phase...Done')
+    else:
+        print('Eve: None')
+
+    # 3- Channel
+    start_time = time.time()
+    Alice_polarized_photons_states_after_channel = Channel(number_of_photons, channel_depolarization_probability, Alice_polarized_photons_states)
+    t3 = time.time() - start_time
+    print('Channel phase...Done')
+
+    # 4- Beam Splitter
+    start_time = time.time()
+    photon_states_after_beam_splitter = Beam_Splitter(Alice_polarized_photons_states_after_channel, Bob_basis_selection)
+    t4 = time.time() - start_time
+    print('Beam Splitter phase...Done')
+
+    # 5- Polarizing beam splitter
+    start_time = time.time()
+    photons_states_after_polarizing_beam_splitter = Polarizing_Beam_Splitter(photon_states_after_beam_splitter, number_of_photons)
+    t5 = time.time() - start_time
+    print('Polarizing Beam Splitter...Done')
+
+    # 6- Single photon avalanche diode
+    start_time = time.time()
+    measured_bits = SPAD(photons_states_after_polarizing_beam_splitter)
+    t6 = time.time() - start_time
+    print('Single-Photon Avalanche Diode phase...Done')
+
+    # 7- Sifting
+    start_time = time.time()
+    QBER, positions_of_unmatched_bases, Alice_sifted_key, Bob_sifted_key = Sifting(key_bits, Alice_basis_selection, Bob_basis_selection, measured_bits)
+    t7 = time.time() - start_time
+    print('Sifting phase...Done')
+    print(f'Quantum Bit Error Rate is {QBER:.6f}.')
+
+    # Elapsed time to sifting
+    total_elapsed_time = t1
