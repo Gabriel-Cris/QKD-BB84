@@ -1,0 +1,72 @@
+import numpy as np
+
+def binary_entropy(x):
+    """Calculate binary entropy."""
+    if x == 0 or x == 1:
+        return 0
+    return -x * np.log2(x) - (1 - x) * np.log2(1 - x)
+
+def security_testing_and_reconciliation_efficiency_reporting(number_input_photons, alice_sifted_key, depolarizing_parameter, eve_attack_level):
+    print('\n\n\t\t\t\t-----<<Security Testing and Recommendation Session Initiation>>-----\n')
+    
+    transition_probability_alice_bob = (eve_attack_level / 4) + (((2 * depolarizing_parameter) / 3) * (2 - eve_attack_level))
+    transition_probability_alice_eve = 0.5 - (eve_attack_level / 4)
+
+    # Mutual information between Alice and Bob
+    h_qber = binary_entropy(transition_probability_alice_bob)
+    alice_bob_mutual_information = 1 - h_qber
+
+    # Mutual information between Alice and Eve
+    h_half_minus_q_eve = binary_entropy(transition_probability_alice_eve)
+    alice_eve_mutual_information = 1 - h_half_minus_q_eve
+
+    # Test security
+    diff = depolarizing_parameter < ((3 / 4) * ((1 - eve_attack_level) / (2 - eve_attack_level)))
+    secure_question = diff  # logical
+
+    mutual_information_alice_bob_bits = alice_bob_mutual_information * number_input_photons
+    mutual_information_alice_eve_bits = alice_eve_mutual_information * number_input_photons
+
+    print('\n\t\t\t\t\t\t-----<<Reporting Mutual Information and Security>>-----\n')
+    print(f'The mutual information between Alice and Bob is {mutual_information_alice_bob_bits:.6f} bits.')
+    print(f'The mutual information between Alice and Eve is {mutual_information_alice_eve_bits:.6f} bits.')
+
+    if secure_question:
+        print('Hence, the communication is secure. You may proceed to the post-processing classical schemes.')
+    else:
+        print('Hence, the communication is unsecure. You should abort the protocol.')
+        answer = input('Do you want to calculate the acceptable range of channel depolarizing parameter at your input attack-level to satisfy security? [y/n]:: ')
+        if answer.lower() == 'y':
+            print('Processing...')
+            depol_threshold = ((3 / 4) * ((1 - eve_attack_level) / (2 - eve_attack_level)))
+            if depol_threshold == 0:
+                print('Done... No acceptable range is found, protocol abortion at this attack level in any channel is a must.')
+            else:
+                print(f'Done... Channel depolarizing parameter should be {depol_threshold:.6f} at maximum.')
+
+    # Calculating Theoretical Key Length
+    if diff:
+        print('\n\t\t\t\t\t\t-----<<Reporting Key Rates>>-----\n')
+        kth = (h_half_minus_q_eve - h_qber)
+        kth_length = kth * len(alice_sifted_key)
+        print(f'The theoretical (maximum) key-rate at your input conditions is {kth:.6f}.\n'
+              f'i.e. The theoretical key-length is {kth_length:.2f} out of your {number_input_photons:.1f} input bits.')
+
+        # Calculating reconciliation efficiency for a target secret-key rate
+        print('\n\t\t\t\t\t\t-----<<Reporting Required Reconciliation Efficiency for a Given Target Secret-Key Rate>>-----\n')
+        answer = input('Do you have a target key rate? [y/n]:: ')
+        if answer.lower() == 'y':
+            target_key_rate = float(input('Please input your target secret-key rate::  '))
+
+            while True:
+                if 0 < target_key_rate < 1:
+                    break
+                else:
+                    target_key_rate = float(input('Target key-rate should be a decimal in the range of (0, 1). Please enter it:: '))
+
+            if target_key_rate < kth:
+                reconciliation_eff = h_qber / (h_half_minus_q_eve - target_key_rate)
+                print(f'The required efficiency of the reconciliation protocol to achieve your target key-rate is {reconciliation_eff:.2f} at minimum.\n'
+                      f'i.e. The maximum allowable bits to be leaked in the post-processing schemes is {1/reconciliation_eff * h_qber * len(alice_sifted_key):.2f}.')
+            else:
+                answer = input('Your target key-rate is larger than
