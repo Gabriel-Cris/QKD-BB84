@@ -1,0 +1,16 @@
+import numpy as np
+
+def sifting(key_bits, alice_basis_selection, bob_basis_selection, measured_bits):
+    # Computing sifted keys
+    # Sifted keys for Bob and Alice are the keys after discarding bits of unmatched bases.
+    positions_of_unmatched_bases = np.where(alice_basis_selection != bob_basis_selection)[0]
+    
+    # Create sifted keys by excluding unmatched bases
+    alice_sifted_key = np.delete(key_bits, positions_of_unmatched_bases)
+    bob_sifted_key = np.delete(measured_bits, positions_of_unmatched_bases)
+
+    # Computing QBER
+    # Quantum Bit Error Rate (QBER), defined as the number of error bits in Alice and Bob sifted Keys / the total length of the sifted key
+    QBER = np.sum(alice_sifted_key != bob_sifted_key) / len(alice_sifted_key) if len(alice_sifted_key) > 0 else 0
+
+    return QBER, positions_of_unmatched_bases, alice_sifted_key, bob_sifted_key
