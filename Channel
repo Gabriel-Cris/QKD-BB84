@@ -1,0 +1,48 @@
+import numpy as np
+
+def channel(numbers_of_photons, channel_depolarization_probability, photons_states_before_channel):
+    # Initialization
+    photons_states_after_channel = np.zeros((4, numbers_of_photons))
+    
+    # Computing states after channel
+    # For horizontal state:
+    horizontal_indices = np.where(photons_states_before_channel == 1)[0]
+    photons_states_after_channel[:, horizontal_indices] = np.tile(
+        np.array([1 - (2/3) * channel_depolarization_probability, 
+                   (2/3) * channel_depolarization_probability, 
+                   0.5, 
+                   0.5]), 
+        (1, len(horizontal_indices))
+    )
+    
+    # For vertical state:
+    vertical_indices = np.where(photons_states_before_channel == 2)[0]
+    photons_states_after_channel[:, vertical_indices] = np.tile(
+        np.array([(2/3) * channel_depolarization_probability, 
+                   1 - (2/3) * channel_depolarization_probability, 
+                   0.5, 
+                   0.5]), 
+        (1, len(vertical_indices))
+    )
+    
+    # For circular-right state:
+    circular_right_indices = np.where(photons_states_before_channel == 3)[0]
+    photons_states_after_channel[:, circular_right_indices] = np.tile(
+        np.array([0.5, 
+                   0.5, 
+                   1 - (2/3) * channel_depolarization_probability, 
+                   (2/3) * channel_depolarization_probability]), 
+        (1, len(circular_right_indices))
+    )
+    
+    # For circular-left state:
+    circular_left_indices = np.where(photons_states_before_channel == 4)[0]
+    photons_states_after_channel[:, circular_left_indices] = np.tile(
+        np.array([0.5, 
+                   0.5, 
+                   (2/3) * channel_depolarization_probability, 
+                   1 - (2/3) * channel_depolarization_probability]), 
+        (1, len(circular_left_indices))
+    )
+    
+    return photons_states_after_channel
